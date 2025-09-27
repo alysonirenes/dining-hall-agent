@@ -1,0 +1,36 @@
+name: Daily Dining Hall Meal Plan
+
+on:
+  schedule:
+    - cron: "0 12 * * *"   # every day at 12:00 UTC
+  workflow_dispatch:       # manual run button
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Generate meal plan
+        env:
+          PAGE_URL: ${{ secrets.MENU_PAGE_URL }}
+        run: python generate_mealplan.py --page-url "$PAGE_URL"
+
+      - name: Commit and push
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add mealplan_*.md || true
+          git commit -m "Daily mealplan $(date +%F)" || echo "no changes"
+          git push || echo "push failed"
